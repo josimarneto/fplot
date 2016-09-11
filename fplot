@@ -1,0 +1,464 @@
+#!/usr/bin/env python3
+
+# |--- Used libraries ---|----------------------{{{
+import math
+import numpy as np
+import matplotlib
+# Force matplotlib to not use any Xwindows backend.
+# matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import os
+import sys
+import readline
+import pickle
+#---}}}
+
+# |--- Allowed math functions ---|----------------------{{{
+from math import sin as sin
+from math import cos as cos
+from math import tan as tan
+from math import exp as exp
+#---}}}
+
+# |--- Generate file with data to plot (from lists of x and y values) --|--{{{
+def generate_data_file(filename, x, y):
+	fid = open(filename, 'w')
+	for k in range(0, len(x)):
+		x_ = x[k]
+		y_ = y[k]
+		for n in range(0, len(x_) - 1):
+			fid.write(str(x_[k]) + ' ')
+		fid.write(str(x_[len(x_) - 1]) + '\n')
+		for n in range(0, len(y_) - 1):
+			fid.write(str(y_[k]) + ' ')
+		fid.write(str(y_[len(y_) - 1]) + '\n')
+	fid.close()
+#---}}}
+
+# |--- myplot_class ---|----------------------{{{
+class myplot_class:
+	def __init__(self):
+		self.xmin = ''
+		self.xmax = ''
+		self.aspect = ''
+		self.graphicfile = ''
+		self.ylabelrotation = ''
+		self.ylabelpad = ''
+		self.xlabel = ''
+		self.ylabel = ''
+		self.filename = ''
+		self.filenamemessage = ''
+		self.sequence_colors = 'r,b,k,g,c,m,y'
+		self.sequence_types = 'solid,dashed,dashdot,' + \
+		'dotted,-,-.,:'
+		self.sequence_linewidths = '2,2,2,2,2,2,2'
+	def set_default_values(self):
+		if self.xmin == '':
+			self.xmin = '-1'
+		if self.xmax == '':
+			self.xmax = '1'
+		if self.aspect == '':
+			self.aspect = ''
+		if self.graphicfile == '':
+			self.graphicfile = 'fwebplot.png'
+		if self.ylabelrotation == '':
+			self.ylabelrotation = '0'
+		if self.ylabelpad == '':
+			self.ylabelpad = '25'
+		if self.xlabel == '':
+			self.xlabel = '${x}$'
+		if self.ylabel == '':
+			self.ylabel = '${f(x)}$'
+#---}}}
+
+# |--- remove_file_if_exists ---|----------------------{{{
+def remove_file_if_exists(filename):
+	try:
+		fid = open(filename, 'r')
+		fid.close()
+		os.system('rm ' + filename)
+	except:
+		file_not_found = True
+#---}}}
+
+# |--- fplot ---|----------------------{{{
+def fplot(myplot):
+	filename = myplot.filename
+	xmin = myplot.xmin
+	xmax = myplot.xmax
+	aspect = myplot.aspect
+	graphicfile_notransp = '___temp_fplot_notransp_' + myplot.graphicfile
+	graphicfile = myplot.graphicfile
+	ylabelrotation = myplot.ylabelrotation
+	ylabelpad = myplot.ylabelpad
+	xlabel = myplot.xlabel
+	ylabel = myplot.ylabel
+	sequence_colors = myplot.sequence_colors.split(',')
+	sequence_types = myplot.sequence_types.split(',')
+	sequence_linewidths_ = myplot.sequence_linewidths.split(',')
+	sequence_linewidths = []
+	for k in range(0, len(sequence_linewidths_)):
+		sequence_linewidths.append(float(sequence_linewidths_[k]))
+	fig, ax = plt.subplots()
+	fid = open(filename, 'r')
+	finished = False
+	empty_lines = 0
+	value_type = 'x'
+	color = sequence_colors[0]
+	line_type = sequence_types[0]
+	linewidth = sequence_linewidths[0]
+	param_position = 1
+	maxx = -1e10
+	minx = 1e10
+	maxy = -1e10
+	miny = 1e10
+	while not finished:
+		line = fid.readline()
+		if len(line) == 0:
+			empty_lines += 1
+			if empty_lines == 10:
+				finished = True
+		else:
+			empty_lines = 0
+			if value_type == 'x':
+				x = line.split(' ')
+				x_ = []
+				for k in range(0, len(x)):
+					x_.append(float(x[k]))
+				value_type = 'y'
+			else:
+				y = line.split(' ')
+				y_ = []
+				for k in range(0, len(y)):
+					y_.append(float(y[k]))
+				value_type = 'x'
+				plt.plot(x_, y_, color=color, \
+				linestyle=line_type, \
+				linewidth = linewidth)
+				if param_position > \
+				len(sequence_colors) - 1:
+					color = sequence_colors[0]
+					line_type = sequence_types[0]
+					linewidth = sequence_linewidths[0]
+					param_position = 1
+				else:
+					color = \
+					sequence_colors[param_position]
+					line_type = \
+					sequence_types[param_position]
+					linewidth = \
+					sequence_linewidths[param_position]
+					param_position += 1
+				if np.max(y_) > maxy:
+					maxy = np.max(y_)
+				if np.max(x_) > maxx:
+					maxx = np.max(x_)
+				if np.min(x_) < minx:
+					minx = np.min(x_)
+				if np.min(y_) > miny:
+					miny = np.min(y_)
+	fid.close()
+	plt.xlabel(xlabel, fontsize = 20)
+	plt.ylabel(ylabel, fontsize = 20, \
+	rotation = float(ylabelrotation), labelpad = float(ylabelpad))
+	ax.spines['right'].set_visible(True)
+	ax.spines['top'].set_visible(True)
+	ax.spines['left'].set_visible(True)
+	ax.spines['bottom'].set_visible(True)
+	ax.xaxis.set_ticks_position('bottom')
+	plt.grid()
+	x_range = np.max(x_) - np.min(x_)
+	y_range = np.max(y_) - np.min(y_)
+	if len(aspect) == 0:
+		aspect = 0.625 * x_range/y_range
+		myplot.aspect = str(aspect)
+	else:
+		aspect = float(aspect)
+	ax.set_aspect(aspect)
+	plt.savefig(graphicfile_notransp, bbox_inches='tight')
+	os.system('convert -transparent white ' + graphicfile_notransp + \
+	' ' + graphicfile)
+#---}}}
+
+# |--- run ---|----------------------{{{
+def show_usage(allowed_commands):
+	print('Usage:')
+	print('fplot -i input_file -o output_file -c config_file')
+	print('or')
+	print('fplot -i input_file -o output_file -c config_file --overwrite')
+	print('\n')
+	print('-i can be replaced by --input')
+	print('-o can be replaced by --output')
+	print('-c can be replaced by --config')
+#---}}}
+
+# |--- file_exists ---|----------------------{{{
+def file_exists(filename):
+	f = True
+	try:
+		fid = open(filename, 'r')
+		fid.close()
+	except:
+		f = False
+	return f
+#---}}}
+
+# |--- rlinput ---|----------------------{{{
+def rlinput(prompt, prefill=''):
+   readline.set_startup_hook(lambda: readline.insert_text(prefill))
+   try:
+      return input(prompt)
+   finally:
+      readline.set_startup_hook()
+#---}}}
+
+# |--- run ---|----------------------{{{
+allowed_commands = ('-i', '--install', '-o', '--output', '--overwrite', \
+'-c', '--config', '-n', '--noninteractive', '--xlabel', '--ylabel', \
+'--yscale', '--ylabelrotation', '--ylabelpad', '--colorsequence', \
+'--linetypesequence', '--linewidthsequence')
+k = 1
+valid_entries = True
+overwrite_file = False
+input_defined = False
+output_defined = False
+config_file = ''
+interactive_mode = True
+xlabel_command_line = ''
+ylabel_command_line = ''
+yscale_command_line = ''
+ylabelrotation_command_line = ''
+ylabelpad_command_line = ''
+colorsequence_command_line = ''
+linetypesequence_command_line = ''
+linewidthsequence_command_line = ''
+
+while (valid_entries) and (k < len(sys.argv)):
+	s = sys.argv[k]
+	if s not in allowed_commands:
+		valid_entries = False
+	else:
+		if s == '-i' or s == '--install':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				input_file = sys.argv[k + 1]
+				input_defined = True
+				k += 1
+		if s == '-o' or s == '--output':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				output_file = sys.argv[k + 1]
+				output_defined = True
+				k += 1
+		if s == '-c' or s == '--config':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				config_file = sys.argv[k + 1]
+				k += 1
+		if s == '--overwrite':
+			overwrite_file = True
+		if (s == '-n') or (s == '--noninteractive'):
+			interactive_mode = False
+		if s == '--xlabel':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				xlabel_command_line = sys.argv[k + 1]
+				k += 1
+		if s == '--ylabel':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				ylabel_command_line = sys.argv[k + 1]
+				k += 1
+		if s == '--yscale':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				yscale_command_line = sys.argv[k + 1]
+				k += 1
+		if s == '--ylabelrotation':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				ylabelrotation_command_line = sys.argv[k + 1]
+				k += 1
+		if s == '--ylabelpad':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				ylabelpad_command_line = sys.argv[k + 1]
+				k += 1
+		if s == '--colorsequence':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				colorsequence_command_line = sys.argv[k + 1]
+				k += 1
+		if s == '--linetypesequence':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				linetypesequence_command_line = sys.argv[k + 1]
+				k += 1
+		if s == '--linewidthsequence':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				linewidthsequence_command_line = \
+				sys.argv[k + 1]
+				k += 1
+	k += 1
+
+run_program = True
+
+if not (input_defined) or not (output_defined):
+	print('You must defined an input file and an output file.')
+	valid_entries = False
+
+if not valid_entries:
+	run_program = False
+	show_usage(allowed_commands)
+else:
+	if not file_exists(input_file):
+		run_program = False
+		print('Specified input file does not exist.')
+	if (not config_file == '') and (not file_exists(config_file)):
+		run_program = False
+		print('File ' + config_file + ' not found for reading.')
+	if (file_exists(output_file)) and (not overwrite_file):
+		run_program = False
+		print('Specified output file already exists. Add ' + \
+		'--overwrite to the command line if you want to' + \
+		' overwrite it.')
+
+configs_available = False
+
+if run_program:
+	myplot = myplot_class()
+	myplot.filename = input_file
+	myplot.graphicfile = output_file
+	myplot.set_default_values()
+	configs_available = True
+	if not (config_file == ''):
+		fid = open(config_file, 'rb')
+		m = pickle.load(fid)
+		fid.close()
+		myplot.xlabel = m.xlabel
+		myplot.ylabel = m.ylabel
+		myplot.aspect = m.aspect
+		myplot.ylabelrotation = m.ylabelrotation
+		myplot.ylabelpad = m.ylabelpad
+	if not xlabel_command_line == '':
+		myplot.xlabel = xlabel_command_line
+	if not ylabel_command_line == '':
+		myplot.ylabel = ylabel_command_line
+	if not yscale_command_line == '':
+		myplot.aspect = yscale_command_line
+	if not ylabelrotation_command_line == '':
+		myplot.ylabelrotation = ylabelrotation_command_line
+	if not ylabelpad_command_line == '':
+		myplot.ylabelpad = ylabelpad_command_line
+	if not colorsequence_command_line == '':
+		myplot.sequence_colors = colorsequence_command_line
+	if not linetypesequence_command_line == '':
+		myplot.sequence_types = linetypesequence_command_line
+	if not linewidthsequence_command_line == '':
+		myplot.sequence_linewidths = linewidthsequence_command_line
+
+while run_program:
+	fplot(myplot)
+	if interactive_mode:
+		print('\n----------------------------\nFile ' + output_file + \
+		' generated. Check below the used parameters.')
+		print('Type a number to alter, or 0 to exit.\n')
+		print('1. xlabel: ' + myplot.xlabel)
+		print('2. ylabel: ' + myplot.ylabel)
+		print('3. y scale with respect to x: ' + myplot.aspect)
+		print('4. y label rotation (in degrees): ' + \
+		myplot.ylabelrotation)
+		print('5. y label pad: ' + myplot.ylabelpad)
+		print('6. Sequence of colors: ' + myplot.sequence_colors)
+		print('7. Sequence of line types: ' + myplot.sequence_types)
+		print('8. Sequence of line widths: ' + \
+		myplot.sequence_linewidths)
+		input_determined = False
+		while not input_determined:
+			s = rlinput('Enter parameter number to ' + \
+			'modify (0 to exit): ', '')
+			if s == '0':
+				run_program = False
+				input_determined = True
+			if s == '1':
+				myplot.xlabel = rlinput('Enter xlabel: ', \
+				myplot.xlabel)
+				input_determined = True
+			if s == '2':
+				myplot.ylabel = rlinput('Enter ylabel: ', \
+				myplot.ylabel)
+				input_determined = True
+			if s == '3':
+				myplot.aspect = rlinput('Enter y scale' + \
+				' with respect to x: ', myplot.aspect)
+				input_determined = True
+			if s == '4':
+				myplot.ylabelrotation = \
+				rlinput('Enter y rotation in degrees: ', \
+				myplot.ylabelrotation)
+				input_determined = True
+			if s == '5':
+				myplot.ylabelpad = \
+				rlinput('Enter y label pad: ', \
+				myplot.ylabelpad)
+				input_determined = True
+			if s == '6':
+				myplot.sequence_colors = \
+				rlinput('Enter new sequence of colors: ', \
+				myplot.sequence_colors)
+				input_determined = True
+			if s == '7':
+				myplot.sequence_types = \
+				rlinput('Enter new sequence of ' + \
+				'line types: ', myplot.sequence_types)
+				input_determined = True
+			if s == '8':
+				myplot.sequence_linewidths = \
+				rlinput('Enter new sequence of ' + \
+				'line widths: ', myplot.sequence_linewidths)
+				input_determined = True
+	else:
+		run_program = False
+if interactive_mode and configs_available:
+	input_determined = False
+	while not input_determined:
+		s = rlinput('Do you want to save current ' + \
+		'parameters (y/n)? ', 'y')
+		if s == 'y':
+			input_determined = True
+			f_det = False
+			while not f_det:
+				f = rlinput('Enter file name: ', \
+				'config.pckl')
+				if file_exists(f):
+					o_det = False
+					while not o_det:
+						o = rlinput('File ' + \
+						f + ' exists. ' + \
+						'Overwrite ' + \
+						'(y/n)? ', 'n')
+						if o == 'n':
+							o_det = True
+						if o == 'y':
+							f_det = True
+							o_det = True
+				else:
+					f_det = True
+			fid = open(f, 'wb')
+			pickle.dump(myplot, fid)
+			fid.close()
+		if s == 'n':
+			input_determined = True
+#---}}}
