@@ -52,6 +52,8 @@ class myplot_class:
 		self.sequence_types = 'solid,dashed,dashdot,' + \
 		'dotted,-,-.,:'
 		self.sequence_linewidths = '2,2,2,2,2,2,2'
+		self.legends = ',,,,,,'
+		self.legend_position = '0.8,0.8'
 	def set_default_values(self):
 		if self.xmin == '':
 			self.xmin = '-1'
@@ -112,6 +114,10 @@ def fplot(myplot):
 	minx = 1e10
 	maxy = -1e10
 	miny = 1e10
+	linenumber = 1
+	legends = str2legends(myplot.legends)
+	legend_position = str2position(myplot.legend_position)
+	legend_available = False
 	while not finished:
 		line = fid.readline()
 		if len(line) == 0:
@@ -132,9 +138,17 @@ def fplot(myplot):
 				for k in range(0, len(y)):
 					y_.append(float(y[k]))
 				value_type = 'x'
-				plt.plot(x_, y_, color=color, \
-				linestyle=line_type, \
-				linewidth = linewidth)
+				if len(legends[linenumber - 1]) == 0:
+					plt.plot(x_, y_, color=color, \
+					linestyle=line_type, \
+					linewidth = linewidth)
+				else:
+					plt.plot(x_, y_, color=color, \
+					linestyle=line_type, \
+					linewidth = linewidth, \
+					label = legends[linenumber - 1])
+					legend_available = True
+				linenumber += 1
 				if param_position > \
 				len(sequence_colors) - 1:
 					color = sequence_colors[0]
@@ -175,6 +189,8 @@ def fplot(myplot):
 	else:
 		aspect = float(aspect)
 	ax.set_aspect(aspect)
+	if legend_available:
+		ax.legend(loc=legend_position)
 	plt.savefig(graphicfile_notransp, bbox_inches='tight')
 	os.system('convert -transparent white ' + graphicfile_notransp + \
 	' ' + graphicfile)
@@ -210,6 +226,31 @@ def rlinput(prompt, prefill=''):
       return input(prompt)
    finally:
       readline.set_startup_hook()
+#---}}}
+
+# |--- str2position ---|----------------------{{{
+def str2position(s):
+	k = 0
+	xstr = ''
+	ystr = ''
+	while k < len(s) and s[k] != ',':
+		if (s[k] >= '0' and s[k] <= '9') or s[k] == '.':
+			xstr += s[k]
+		k += 1
+	while k < len(s):
+		if (s[k] >= '0' and s[k] <= '9') or s[k] == '.':
+			ystr += s[k]
+		k += 1
+	x = float(xstr)
+	y = float(ystr)
+	p = [x, y]
+	return p
+#---}}}
+
+# |--- str2legends ---|----------------------{{{
+def str2legends(s):
+	s2 = s.split(',')
+	return s2
 #---}}}
 
 # |--- run ---|----------------------{{{
@@ -385,6 +426,8 @@ while run_program:
 		print('7. Sequence of line types: ' + myplot.sequence_types)
 		print('8. Sequence of line widths: ' + \
 		myplot.sequence_linewidths)
+		print('9. Legend position: ' + myplot.legend_position)
+		print('10. Legends: ' + myplot.legends)
 		input_determined = False
 		while not input_determined:
 			s = rlinput('Enter parameter number to ' + \
@@ -428,6 +471,16 @@ while run_program:
 				myplot.sequence_linewidths = \
 				rlinput('Enter new sequence of ' + \
 				'line widths: ', myplot.sequence_linewidths)
+				input_determined = True
+			if s == '9':
+				myplot.legend_position = \
+				rlinput('Enter new legend ' + \
+				'position: ', myplot.legend_position)
+				input_determined = True
+			if s == '10':
+				myplot.legends = \
+				rlinput('Enter new legends: ', \
+				myplot.legends)
 				input_determined = True
 	else:
 		run_program = False
