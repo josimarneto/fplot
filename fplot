@@ -199,13 +199,11 @@ def fplot(myplot):
 # |--- run ---|----------------------{{{
 def show_usage(allowed_commands):
 	print('Usage:')
-	print('fplot -i input_file -o output_file -c config_file')
-	print('or')
-	print('fplot -i input_file -o output_file -c config_file --overwrite')
-	print('\n')
-	print('-i can be replaced by --input')
-	print('-o can be replaced by --output')
-	print('-c can be replaced by --config')
+	print('fplot option1 string_if_required option2 string_if_required' + \
+	' option3 string_if_required...')
+	print('\nAvailable options:')
+	for k in range(0, len(allowed_commands)):
+		print(allowed_commands[k])
 #---}}}
 
 # |--- file_exists ---|----------------------{{{
@@ -257,7 +255,8 @@ def str2legends(s):
 allowed_commands = ('-i', '--install', '-o', '--output', '--overwrite', \
 '-c', '--config', '-n', '--noninteractive', '--xlabel', '--ylabel', \
 '--yscale', '--ylabelrotation', '--ylabelpad', '--colorsequence', \
-'--linetypesequence', '--linewidthsequence')
+'--linetypesequence', '--linewidthsequence', \
+'--legend_position', '--legend')
 k = 1
 valid_entries = True
 overwrite_file = False
@@ -273,6 +272,8 @@ ylabelpad_command_line = ''
 colorsequence_command_line = ''
 linetypesequence_command_line = ''
 linewidthsequence_command_line = ''
+legend_position_command_line = ''
+legend_command_line = ''
 
 while (valid_entries) and (k < len(sys.argv)):
 	s = sys.argv[k]
@@ -352,12 +353,26 @@ while (valid_entries) and (k < len(sys.argv)):
 				linewidthsequence_command_line = \
 				sys.argv[k + 1]
 				k += 1
+		if s == '--legend_position':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				legend_position_command_line = \
+				sys.argv[k + 1]
+				k += 1
+		if s == '--legend':
+			if k + 1 >= len(sys.argv):
+				valid_entries = False
+			else:
+				legend_command_line = \
+				sys.argv[k + 1]
+				k += 1
 	k += 1
 
 run_program = True
 
 if not (input_defined) or not (output_defined):
-	print('You must defined an input file and an output file.')
+	print('You must define an input file and an output file.')
 	valid_entries = False
 
 if not valid_entries:
@@ -409,6 +424,10 @@ if run_program:
 		myplot.sequence_types = linetypesequence_command_line
 	if not linewidthsequence_command_line == '':
 		myplot.sequence_linewidths = linewidthsequence_command_line
+	if not legend_command_line == '':
+		myplot.legends = legend_command_line
+	if not legend_position_command_line == '':
+		myplot.legend_position = legend_position_command_line
 
 while run_program:
 	fplot(myplot)
